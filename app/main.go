@@ -13,12 +13,9 @@ var _ = os.Stdout
 
 func main() {
 
-	// Default echo prompt
-	echo := "$ "
-
 	for {
 		// Start a shell prompt
-		_, _ = fmt.Fprint(os.Stdout, echo)
+		_, _ = fmt.Fprint(os.Stdout, "$ ")
 
 		//	Read user input
 		input, err := bufio.NewReader(os.Stdin).ReadString('\n')
@@ -40,7 +37,7 @@ func main() {
 			os.Exit(0)
 		case "echo":
 			if len(args) > 0 {
-				echo = strings.Join(args, " ")
+				fmt.Println(strings.Join(args, " "))
 			}
 		default:
 			//	Print command not found message
