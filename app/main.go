@@ -40,7 +40,7 @@ func main() {
 			os.Exit(0)
 		case "echo":
 			if len(args) > 0 {
-				echo = strings.Join(args, " ") + " "
+				echo = strings.Join(args, " ")
 			}
 		default:
 			//	Print command not found message
