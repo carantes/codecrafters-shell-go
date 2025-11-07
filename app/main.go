@@ -33,6 +33,6 @@ func main() {
 		}
 
 		//	Print command not found message
-		fmt.Println(cmd[:len(cmd)-1] + ": command not found")
+		fmt.Println(cmd + ": command not found")
 	}
 }
