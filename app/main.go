@@ -92,7 +92,7 @@ func findFileInPath(command string) (string, bool) {
 
 	for _, dir := range paths {
 		fullPath := dir + "/" + command
-		if fileInfo, err := os.Stat(fullPath); err == nil && !fileInfo.IsDir() {
+		if _, err := os.Stat(fullPath); err == nil {
 			return fullPath, true
 		}
 	}
