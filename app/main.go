@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 )
 
@@ -32,6 +33,8 @@ func main() {
 		cmd := strings.Fields(input)[0]
 		args := strings.Fields(input)[1:]
 
+		shellCommands := []string{"exit", "echo", "type"}
+
 		switch cmd {
 		case "exit":
 			os.Exit(0)
@@ -39,8 +42,13 @@ func main() {
 			if len(args) > 0 {
 				fmt.Println(strings.Join(args, " "))
 			}
+		case "type":
+			if len(args) > 0 && slices.Contains(shellCommands, args[0]) {
+				fmt.Println(args[0] + " is a shell builtin")
+			} else {
+				fmt.Println(args[0] + ": not found")
+			}
 		default:
-			//	Print command not found message
 			fmt.Println(cmd + ": command not found")
 		}
 
