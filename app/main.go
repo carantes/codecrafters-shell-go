@@ -92,10 +92,15 @@ func findFileInPath(command string) (string, bool) {
 
 	for _, dir := range paths {
 		fullPath := dir + "/" + command
-		if _, err := os.Stat(fullPath); err == nil {
+		if fileInfo, err := os.Stat(fullPath); err == nil && isExecutable(fileInfo) {
 			return fullPath, true
 		}
 	}
 
 	return "", false
+}
+
+func isExecutable(fileInfo os.FileInfo) bool {
+	mode := fileInfo.Mode()
+	return mode.IsRegular() && mode&0111 != 0
 }
