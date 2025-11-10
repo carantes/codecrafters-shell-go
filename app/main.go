@@ -13,7 +13,7 @@ import (
 var _ = fmt.Fprint
 var _ = os.Stdout
 
-var builtInCommands = []string{"exit", "echo", "type", "pwd"}
+var builtInCommands = []string{"exit", "echo", "type", "pwd", "cd"}
 
 func main() {
 
@@ -45,6 +45,8 @@ func main() {
 			typeCommand(argv)
 		case "pwd":
 			pwdCommand(argv)
+		case "cd":
+			cdCommand(argv)
 		default:
 			runExternalCommand(argv)
 		}
@@ -99,6 +101,22 @@ func pwdCommand(_ []string) {
 	fmt.Println(pwd)
 }
 
+func cdCommand(argv []string) {
+	if len(argv) < 2 {
+		// No argument, print current directory
+		pwdCommand([]string{})
+		return
+	}
+
+	targetDir := argv[1]
+
+	if exists := findDirectory(targetDir); exists {
+		os.Chdir(targetDir)
+	} else {
+		fmt.Fprintf(os.Stdout, "cd: %s: No such file or directory\n", targetDir)
+	}
+}
+
 func runExternalCommand(argv []string) {
 	if len(argv) < 1 {
 		return
@@ -134,6 +152,14 @@ func findFileInPath(command string) (string, bool) {
 	}
 
 	return "", false
+}
+
+func findDirectory(targetDir string) bool {
+	if _, err := os.ReadDir(targetDir); err == nil {
+		return true
+	}
+
+	return false
 }
 
 func isExecutable(fileInfo os.FileInfo) bool {
