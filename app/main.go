@@ -43,6 +43,8 @@ func main() {
 			echoCommand(argv)
 		case "type":
 			typeCommand(argv)
+		case "pwd":
+			pwdCommand(argv)
 		default:
 			runExternalCommand(argv)
 		}
@@ -85,6 +87,16 @@ func typeCommand(argv []string) {
 
 	// Command not found
 	fmt.Println(arg + ": not found")
+}
+
+func pwdCommand(_ []string) {
+	pwd, err := os.Getwd()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(pwd)
 }
 
 func runExternalCommand(argv []string) {
