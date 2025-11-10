@@ -13,7 +13,7 @@ import (
 var _ = fmt.Fprint
 var _ = os.Stdout
 
-var builtInCommands = []string{"exit", "echo", "type"}
+var builtInCommands = []string{"exit", "echo", "type", "pwd"}
 
 func main() {
 
