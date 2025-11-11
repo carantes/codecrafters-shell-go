@@ -109,14 +109,25 @@ func cdCommand(argv []string) {
 		return
 	}
 
-	currentDir, _ := os.Getwd()
-	fullPath := filepath.Join(currentDir, argv[1])
+	targetDir := argv[1]
 
-	if exists := findDirectory(fullPath); exists {
-		os.Chdir(fullPath)
+	var fullPath string
+
+	if strings.HasPrefix(targetDir, "/") {
+		fullPath = targetDir
 	} else {
-		fmt.Fprintf(os.Stdout, "cd: %s: No such file or directory\n", fullPath)
+		cwd, _ := os.Getwd()
+		fullPath = filepath.Join(cwd, targetDir)
 	}
+
+	stat, err := os.Stat(fullPath)
+
+	if err != nil || !stat.IsDir() {
+		fmt.Fprintf(os.Stdout, "cd: %s: No such file or directory\n", fullPath)
+		return
+	}
+
+	os.Chdir(fullPath)
 }
 
 func runExternalCommand(argv []string) {
