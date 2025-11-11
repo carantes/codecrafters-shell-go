@@ -113,7 +113,10 @@ func cdCommand(argv []string) {
 
 	var fullPath string
 
-	if strings.HasPrefix(targetDir, "/") {
+	if strings.HasPrefix(targetDir, "~") {
+		homeDir, _ := os.UserHomeDir()
+		fullPath = strings.Replace(targetDir, "~", homeDir, 1)
+	} else if strings.HasPrefix(targetDir, "/") {
 		fullPath = targetDir
 	} else {
 		cwd, _ := os.Getwd()
