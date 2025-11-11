@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 )
@@ -108,12 +109,13 @@ func cdCommand(argv []string) {
 		return
 	}
 
-	targetDir := argv[1]
+	currentDir, _ := os.Getwd()
+	fullPath := filepath.Join(currentDir, argv[1])
 
-	if exists := findDirectory(targetDir); exists {
-		os.Chdir(targetDir)
+	if exists := findDirectory(fullPath); exists {
+		os.Chdir(fullPath)
 	} else {
-		fmt.Fprintf(os.Stdout, "cd: %s: No such file or directory\n", targetDir)
+		fmt.Fprintf(os.Stdout, "cd: %s: No such file or directory\n", fullPath)
 	}
 }
 
