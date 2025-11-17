@@ -34,7 +34,9 @@ func main() {
 			continue
 		}
 
-		argv := strings.Fields(input)
+		// TODO: Parse input using a custom parser to handle quotes and escapes
+		argv := parseInput(input)
+		//argv := strings.Fields(input)
 		cmd := argv[0]
 
 		switch cmd {
@@ -53,6 +55,43 @@ func main() {
 		}
 
 	}
+}
+
+func parseInput(input string) []string {
+	var argv []string
+	var currentArg strings.Builder
+	inQuotes := false
+	escapeNext := false
+
+	for _, char := range input {
+		if escapeNext {
+			currentArg.WriteRune(char)
+			escapeNext = false
+			continue
+		}
+
+		switch char {
+		case '\\':
+			escapeNext = true
+		case '\'':
+			inQuotes = !inQuotes
+		case ' ', '\n', '\t':
+			if inQuotes {
+				currentArg.WriteRune(char)
+			} else if currentArg.Len() > 0 {
+				argv = append(argv, currentArg.String())
+				currentArg.Reset()
+			}
+		default:
+			currentArg.WriteRune(char)
+		}
+	}
+
+	if currentArg.Len() > 0 {
+		argv = append(argv, currentArg.String())
+	}
+
+	return argv
 }
 
 func exitCommand(_ []string) {
@@ -168,14 +207,6 @@ func findFileInPath(command string) (string, bool) {
 	}
 
 	return "", false
-}
-
-func findDirectory(targetDir string) bool {
-	if _, err := os.ReadDir(targetDir); err == nil {
-		return true
-	}
-
-	return false
 }
 
 func isExecutable(fileInfo os.FileInfo) bool {
