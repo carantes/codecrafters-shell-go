@@ -50,6 +50,8 @@ func main() {
 			pwdCommand(argv)
 		case "cd":
 			cdCommand(argv)
+		case "cat":
+			catCommand(argv)
 		default:
 			runExternalCommand(argv)
 		}
@@ -60,7 +62,7 @@ func main() {
 func parseInput(input string) []string {
 	var argv []string
 	var currentArg strings.Builder
-	inQuotes := false
+	var quoteChar rune
 	escapeNext := false
 
 	for _, char := range input {
@@ -73,10 +75,19 @@ func parseInput(input string) []string {
 		switch char {
 		case '\\':
 			escapeNext = true
-		case '\'':
-			inQuotes = !inQuotes
+		case '\'', '"':
+			if quoteChar == 0 {
+				// Starting a new quote
+				quoteChar = char
+			} else if quoteChar == char {
+				// Ending the current quote
+				quoteChar = 0
+			} else {
+				// Inside one quote type, treat the other as literal
+				currentArg.WriteRune(char)
+			}
 		case ' ', '\n', '\t':
-			if inQuotes {
+			if quoteChar != 0 {
 				currentArg.WriteRune(char)
 			} else if currentArg.Len() > 0 {
 				argv = append(argv, currentArg.String())
@@ -105,6 +116,32 @@ func echoCommand(argv []string) {
 	} else {
 		fmt.Println()
 	}
+}
+
+func catCommand(argv []string) {
+	if len(argv) < 1 {
+		fmt.Println("Usage: cat <path>")
+		return
+	}
+
+	output := ""
+
+	for _, arg := range argv {
+		if arg == "cat" {
+			continue
+		}
+
+		content, err := os.ReadFile(arg)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "cat: %s: No such file or directory\n", arg)
+			continue
+		}
+
+		output += string(content)
+	}
+
+	fmt.Print(output)
 }
 
 func typeCommand(argv []string) {
