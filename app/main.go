@@ -4,17 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"slices"
 	"strings"
 )
 
-// Ensures gofmt doesn't remove the "fmt" and "os" imports in stage 1 (feel free to remove this!)
+// // Ensures gofmt doesn't remove the "fmt" and "os" imports in stage 1 (feel free to remove this!)
 var _ = fmt.Fprint
 var _ = os.Stdout
-
-var builtInCommands = []string{"exit", "echo", "type", "pwd", "cd"}
 
 func main() {
 
@@ -34,28 +29,20 @@ func main() {
 			continue
 		}
 
-		// TODO: Parse input using a custom parser to handle quotes and escapes
+		// Custom parser to handle quotes and escapes
 		argv := parseInput(input)
-		//argv := strings.Fields(input)
-		cmd := argv[0]
 
-		switch cmd {
-		case "exit":
-			exitCommand(argv)
-		case "echo":
-			echoCommand(argv)
-		case "type":
-			typeCommand(argv)
-		case "pwd":
-			pwdCommand(argv)
-		case "cd":
-			cdCommand(argv)
-		case "cat":
-			catCommand(argv)
-		default:
-			runExternalCommand(argv)
+		// Get redirection arguments if any
+		outFile, cleanArgv := getRedirection(argv)
+
+		output, err := RunCommand(cleanArgv)
+
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			continue
 		}
 
+		printOutput(output, outFile)
 	}
 }
 
@@ -105,148 +92,39 @@ func parseInput(input string) []string {
 	return argv
 }
 
-func exitCommand(_ []string) {
-	code := 0
-	os.Exit(code)
-}
-
-func echoCommand(argv []string) {
-	if len(argv) > 1 {
-		fmt.Println(strings.Join(argv[1:], " "))
-	} else {
-		fmt.Println()
-	}
-}
-
-func catCommand(argv []string) {
-	if len(argv) < 1 {
-		fmt.Println("Usage: cat <path>")
-		return
-	}
-
-	output := ""
-
-	for _, arg := range argv {
-		if arg == "cat" {
-			continue
+func getRedirection(argv []string) (outFile string, cleanedArgv []string) {
+	cleanedArgv = []string{}
+	i := 0
+	for i < len(argv) {
+		if (argv[i] == ">" || argv[i] == "1>") && i+1 < len(argv) {
+			outFile = argv[i+1]
+			i += 2 // Skip the redirection and file name
+		} else {
+			cleanedArgv = append(cleanedArgv, argv[i])
+			i++
 		}
+	}
+	return
+}
 
-		content, err := os.ReadFile(arg)
-
+func printOutput(output, outFile string) error {
+	if outFile != "" {
+		// Handle output redirection
+		file, err := os.Create(outFile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "cat: %s: No such file or directory\n", arg)
-			continue
+			return fmt.Errorf("error creating file %s: %v", outFile, err)
 		}
 
-		output += string(content)
-	}
+		defer file.Close()
 
-	fmt.Print(output)
-}
-
-func typeCommand(argv []string) {
-	// Not enough arguments
-	if len(argv) < 2 {
-		return
-	}
-
-	arg := argv[1]
-
-	// Check if the command is a shell builtin
-	if slices.Contains(builtInCommands, arg) {
-		fmt.Println(arg + " is a shell builtin")
-		return
-	}
-
-	// Find file in PATH
-	if file, exists := findFileInPath(arg); exists {
-		fmt.Fprintf(os.Stdout, "%s is %s\n", arg, file)
-		return
-	}
-
-	// Command not found
-	fmt.Println(arg + ": not found")
-}
-
-func pwdCommand(_ []string) {
-	pwd, err := os.Getwd()
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(pwd)
-}
-
-func cdCommand(argv []string) {
-	if len(argv) < 2 {
-		// No argument, print current directory
-		pwdCommand([]string{})
-		return
-	}
-
-	targetDir := argv[1]
-
-	var fullPath string
-
-	if strings.HasPrefix(targetDir, "~") {
-		homeDir, _ := os.UserHomeDir()
-		fullPath = strings.Replace(targetDir, "~", homeDir, 1)
-	} else if strings.HasPrefix(targetDir, "/") {
-		fullPath = targetDir
-	} else {
-		cwd, _ := os.Getwd()
-		fullPath = filepath.Join(cwd, targetDir)
-	}
-
-	stat, err := os.Stat(fullPath)
-
-	if err != nil || !stat.IsDir() {
-		fmt.Fprintf(os.Stdout, "cd: %s: No such file or directory\n", fullPath)
-		return
-	}
-
-	os.Chdir(fullPath)
-}
-
-func runExternalCommand(argv []string) {
-	if len(argv) < 1 {
-		return
-	}
-
-	cmd := argv[0]
-	args := argv[1:]
-
-	if _, exists := findFileInPath(cmd); exists {
-		// Run the command and share standard output
-		cmd := exec.Command(cmd, args...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		if err := cmd.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error running command: %s\n", err)
+		_, err = file.WriteString(output)
+		if err != nil {
+			return fmt.Errorf("error writing to file %s: %v", outFile, err)
 		}
 	} else {
-		// Command not found
-		fmt.Println(cmd + ": command not found")
-	}
-}
-
-func findFileInPath(command string) (string, bool) {
-	pathEnv := os.Getenv("PATH")
-	paths := strings.Split(pathEnv, string(os.PathListSeparator))
-
-	for _, dir := range paths {
-		fullPath := dir + "/" + command
-		if fileInfo, err := os.Stat(fullPath); err == nil && isExecutable(fileInfo) {
-			return fullPath, true
-		}
+		// Print to standard output
+		fmt.Println(output)
 	}
 
-	return "", false
-}
-
-func isExecutable(fileInfo os.FileInfo) bool {
-	mode := fileInfo.Mode()
-	return mode.IsRegular() && mode&0111 != 0
+	return nil
 }
